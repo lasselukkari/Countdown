@@ -15,7 +15,6 @@
 
 SSD1306Wire display(0x3c, SDA, SCL, DISPLAY_GEOMETRY);
 WiFiUDP udp;
-unsigned int localPort = 2390;
 IPAddress timeServerIP;
 byte packetBuffer[NTP_PACKET_SIZE];
 
