@@ -13,7 +13,6 @@
 #define NTP_PACKET_SIZE 48
 #define UDP_LOCAL_PORT 2390
 
-
 SSD1306Wire display(0x3c, SDA, SCL, DISPLAY_GEOMETRY);
 WiFiUDP udp;
 unsigned int localPort = 2390;
@@ -21,10 +20,9 @@ IPAddress timeServerIP;
 byte packetBuffer[NTP_PACKET_SIZE];
 
 void drawRow(int row, const char* title, int value) {
+  int offset = row * ROW_HEIGHT;
   char buffer [16] {};
   itoa(value, buffer, 10);
-
-  int offset = row * ROW_HEIGHT;
 
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.drawString(0, offset, title);
