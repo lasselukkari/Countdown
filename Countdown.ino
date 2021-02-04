@@ -4,9 +4,9 @@
 
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
-#define COUNTDOWN_EPOCH 1669766400 // https://www.epochconverter.com/
+#define COUNTDOWN_EPOCH 1669766400 //https://www.epochconverter.com/
 #define DISPLAY_GEOMETRY GEOMETRY_64_48
-#define ROW_HEIGHT 16
+#define ROW_HEIGHT 12
 #define FONT ArialMT_Plain_10
 #define DISPLAY_WIDTH 64
 #define NTP_SERVER "time.nist.gov"
@@ -20,9 +20,10 @@ IPAddress timeServerIP;
 byte packetBuffer[NTP_PACKET_SIZE];
 
 void drawRow(int row, const char* title, int value) {
-  int offset = row * ROW_HEIGHT;
   char buffer [16] {};
   itoa(value, buffer, 10);
+
+  int offset = row * ROW_HEIGHT;
 
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.drawString(0, offset, title);
@@ -83,7 +84,7 @@ void updateTime() {
   long delta = COUNTDOWN_EPOCH - epoch;
   int days = delta / (24 * 3600);
   delta = delta % (24 * 3600);
-  int hour = delta / 3600;
+  int hours = delta / 3600;
   delta %= 3600;
   int minutes = delta / 60 ;
   delta %= 60;
@@ -91,8 +92,9 @@ void updateTime() {
 
   display.clear();
   drawRow(0, "Days:", days);
-  drawRow(1, "Minutes:", minutes);
-  drawRow(2, "Seconds:", seconds);
+  drawRow(1, "Hours:", hours);  
+  drawRow(2, "Minutes:", minutes);
+  drawRow(3, "Seconds:", seconds);
   display.display();
 }
 
