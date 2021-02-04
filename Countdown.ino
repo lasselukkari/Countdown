@@ -77,8 +77,8 @@ void updateTime() {
   unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
   unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
   unsigned long secsSince1900 = highWord << 16 | lowWord;
-  const unsigned long seventyYears = 2208988800UL;
-  unsigned long epoch = (secsSince1900 - seventyYears);
+  unsigned long seventyYears = 2208988800UL;
+  unsigned long epoch = secsSince1900 - seventyYears;
 
   long delta = COUNTDOWN_EPOCH - epoch;
   int days = delta / (24 * 3600);
