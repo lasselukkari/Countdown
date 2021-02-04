@@ -13,8 +13,10 @@
 #define NTP_PACKET_SIZE 48
 #define UDP_LOCAL_PORT 2390
 
+
 SSD1306Wire display(0x3c, SDA, SCL, DISPLAY_GEOMETRY);
 WiFiUDP udp;
+unsigned int localPort = 2390;
 IPAddress timeServerIP;
 byte packetBuffer[NTP_PACKET_SIZE];
 
@@ -62,38 +64,38 @@ void setup() {
 
   display.init();
   display.setFont(FONT);
-
 }
 
 void updateTime() {
   WiFi.hostByName(NTP_SERVER, timeServerIP);
   sendNTPpacket(timeServerIP);
   delay(1000);
-  int cb = udp.parsePacket();
 
-  if (cb) {
-    udp.read(packetBuffer, NTP_PACKET_SIZE);
-    unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    unsigned long secsSince1900 = highWord << 16 | lowWord;
-    const unsigned long seventyYears = 2208988800UL;
-    unsigned long epoch = (secsSince1900 - seventyYears);
-    
-    long delta = COUNTDOWN_EPOCH - epoch;
-    int days = delta / (24 * 3600);
-    delta = delta % (24 * 3600);
-    int hour = delta / 3600;
-    delta %= 3600;
-    int minutes = delta / 60 ;
-    delta %= 60;
-    int seconds = delta;
-
-    display.clear();
-    drawRow(0, "Days:", days);
-    drawRow(1, "Minutes:", minutes);
-    drawRow(2, "Seconds:", seconds);
-    display.display();
+  if (!udp.parsePacket()) {
+    return;
   }
+
+  udp.read(packetBuffer, NTP_PACKET_SIZE);
+  unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+  unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+  unsigned long secsSince1900 = highWord << 16 | lowWord;
+  const unsigned long seventyYears = 2208988800UL;
+  unsigned long epoch = (secsSince1900 - seventyYears);
+
+  long delta = COUNTDOWN_EPOCH - epoch;
+  int days = delta / (24 * 3600);
+  delta = delta % (24 * 3600);
+  int hour = delta / 3600;
+  delta %= 3600;
+  int minutes = delta / 60 ;
+  delta %= 60;
+  int seconds = delta;
+
+  display.clear();
+  drawRow(0, "Days:", days);
+  drawRow(1, "Minutes:", minutes);
+  drawRow(2, "Seconds:", seconds);
+  display.display();
 }
 
 void loop() {
@@ -107,4 +109,3 @@ void loop() {
     delay(1000);
   }
 }
-
