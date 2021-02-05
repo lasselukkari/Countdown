@@ -9,14 +9,17 @@
 #define ROW_HEIGHT 12
 #define FONT ArialMT_Plain_10
 #define DISPLAY_WIDTH 64
-#define NTP_SERVER "time.nist.gov"
+#define NTP_SERVER "time.facebook.com"
 #define NTP_PACKET_SIZE 48
 #define UDP_LOCAL_PORT 2390
+#define UPDATE_INTERVAL 3600000
 
 SSD1306Wire display(0x3c, SDA, SCL, DISPLAY_GEOMETRY);
 WiFiUDP udp;
 IPAddress timeServerIP;
 byte packetBuffer[NTP_PACKET_SIZE];
+unsigned long epochDelta;
+unsigned long lastUpdate = 0;
 
 void drawRow(int row, const char* title, int value) {
   char buffer [16] {};
@@ -47,6 +50,44 @@ void sendNTPpacket(IPAddress& address) {
   udp.endPacket();
 }
 
+void updateTime() {
+  WiFi.hostByName(NTP_SERVER, timeServerIP);
+  sendNTPpacket(timeServerIP);
+  delay(1000);
+
+  if (!udp.parsePacket()) {
+    return;
+  }
+
+  udp.read(packetBuffer, NTP_PACKET_SIZE);
+  unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+  unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+  unsigned long secsSince1900 = highWord << 16 | lowWord;
+  unsigned long seventyYears = 2208988800UL;
+  unsigned long now = millis();
+  epochDelta = (secsSince1900 - seventyYears)  - (now / 1000);
+  lastUpdate = now;
+}
+
+void updateDisplay() {
+  unsigned long epoch = epochDelta +  (millis() / 1000);
+  unsigned long delta = COUNTDOWN_EPOCH - epoch;
+  int days = delta / (24 * 3600);
+  delta = delta % (24 * 3600);
+  int hours = delta / 3600;
+  delta %= 3600;
+  int minutes = delta / 60 ;
+  delta %= 60;
+  int seconds = delta;
+
+  display.clear();
+  drawRow(0, "Days:", days);
+  drawRow(1, "Hours:", hours);
+  drawRow(2, "Minutes:", minutes);
+  drawRow(3, "Seconds:", seconds);
+  display.display();
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -64,47 +105,11 @@ void setup() {
   display.setFont(FONT);
 }
 
-void updateTime() {
-  WiFi.hostByName(NTP_SERVER, timeServerIP);
-  sendNTPpacket(timeServerIP);
-  delay(1000);
-
-  if (!udp.parsePacket()) {
-    return;
-  }
-
-  udp.read(packetBuffer, NTP_PACKET_SIZE);
-  unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-  unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-  unsigned long secsSince1900 = highWord << 16 | lowWord;
-  unsigned long seventyYears = 2208988800UL;
-  unsigned long epoch = secsSince1900 - seventyYears;
-
-  long delta = COUNTDOWN_EPOCH - epoch;
-  int days = delta / (24 * 3600);
-  delta = delta % (24 * 3600);
-  int hours = delta / 3600;
-  delta %= 3600;
-  int minutes = delta / 60 ;
-  delta %= 60;
-  int seconds = delta;
-
-  display.clear();
-  drawRow(0, "Days:", days);
-  drawRow(1, "Hours:", hours);  
-  drawRow(2, "Minutes:", minutes);
-  drawRow(3, "Seconds:", seconds);
-  display.display();
-}
-
 void loop() {
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED && (!lastUpdate || (millis() - lastUpdate >= UPDATE_INTERVAL))) {
     updateTime();
-  } else {
-    display.clear();
-    display.setTextAlignment(TEXT_ALIGN_LEFT);
-    display.drawString(0, 0, "No connection");
-    display.display();
-    delay(1000);
   }
+
+  updateDisplay();
+  delay(1000);
 }
