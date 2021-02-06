@@ -4,20 +4,19 @@
 
 #define WIFI_SSID ""
 #define WIFI_PASSWORD ""
-#define COUNTDOWN_EPOCH 1669766400 //https://www.epochconverter.com/
+#define COUNTDOWN_EPOCH 1669766400 // https://www.epochconverter.com/
 #define DISPLAY_GEOMETRY GEOMETRY_64_48
 #define ROW_HEIGHT 12
 #define FONT ArialMT_Plain_10
 #define DISPLAY_WIDTH 64
 #define NTP_SERVER "time.facebook.com"
-#define NTP_PACKET_SIZE 48
-#define UDP_LOCAL_PORT 2390
 #define UPDATE_INTERVAL 3600000
 
 SSD1306Wire display(0x3c, SDA, SCL, DISPLAY_GEOMETRY);
 WiFiUDP udp;
 IPAddress timeServerIP;
-byte packetBuffer[NTP_PACKET_SIZE];
+int ntpPacketSize  = 48;
+byte packetBuffer[48];
 unsigned long epochDelta;
 unsigned long lastUpdate = 0;
 
@@ -34,7 +33,7 @@ void drawRow(int row, const char* title, int value) {
 }
 
 void sendNTPpacket(IPAddress& address) {
-  memset(packetBuffer, 0, NTP_PACKET_SIZE);
+  memset(packetBuffer, 0, ntpPacketSize);
 
   packetBuffer[0] = 0b11100011;
   packetBuffer[1] = 0;
@@ -46,7 +45,7 @@ void sendNTPpacket(IPAddress& address) {
   packetBuffer[15]  = 52;
 
   udp.beginPacket(address, 123);
-  udp.write(packetBuffer, NTP_PACKET_SIZE);
+  udp.write(packetBuffer, ntpPacketSize);
   udp.endPacket();
 }
 
@@ -59,7 +58,7 @@ void updateTime() {
     return;
   }
 
-  udp.read(packetBuffer, NTP_PACKET_SIZE);
+  udp.read(packetBuffer, ntpPacketSize);
   unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
   unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
   unsigned long secsSince1900 = highWord << 16 | lowWord;
@@ -89,20 +88,20 @@ void updateDisplay() {
 }
 
 void setup() {
-  Serial.begin(115200);
+  display.init();
+  display.setFont(FONT);
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.clear();
+  display.drawString(0, 0, "Connecting...");
+  display.display();
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
   }
-  Serial.println("");
 
-  udp.begin(UDP_LOCAL_PORT);
-
-  display.init();
-  display.setFont(FONT);
+  udp.begin(2390);
 }
 
 void loop() {
@@ -111,5 +110,6 @@ void loop() {
   }
 
   updateDisplay();
+
   delay(100);
 }
